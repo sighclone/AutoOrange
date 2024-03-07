@@ -16,7 +16,7 @@ import tkinter as tk
 screenWidth, screenHeight = pag.size()
 
 # testKey from my account...
-mykey = "AIzaSyDVNXysC7JXYND_1aey22ASdIA4-lKF0xg" # "---oops"
+mykey = "API KEY" # "---oops"
 genai.configure(api_key=mykey)
 model = genai.GenerativeModel('gemini-pro')
 speaker = win32com.client.Dispatch("SAPI.SpVoice")
