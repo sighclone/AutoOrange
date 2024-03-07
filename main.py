@@ -9,12 +9,13 @@ import pathlib
 import textwrap
 import google.generativeai as genai
 from pynput import keyboard
-import threading
+from threading import Thread
+
 
 screenWidth, screenHeight = pag.size()
 
 # testKey from my account...
-mykey = "YOUR_API_KEY :) not gonna leak it yet again"
+mykey = "AIzaSyB_cxC5kWIrhOohiqBCtE-jJiwZB0s8EhU"
 genai.configure(api_key=mykey)
 model = genai.GenerativeModel('gemini-pro')
 speaker = win32com.client.Dispatch("SAPI.SpVoice")
@@ -142,11 +143,11 @@ def mouseMove(query):
         x, y = pag.position()
         # say("".join(["mouse is currently at", str(x), " and ", str(y)]))
         pag.moveTo(x + points, y)
-    if (direction == "up"):
+    if (direction == "up" or direction=="above"):
         x, y = pag.position()
         # say("".join(["mouse is currently at", str(x), " and ", str(y)]))
         pag.moveTo(x, y - points)
-    if (direction == "down"):
+    if (direction == "down" or direction=="below"):
         x, y = pag.position()
         # say("".join(["mouse is currently at", str(x), " and ", str(y)]))
         pag.moveTo(x, y + points)
@@ -154,9 +155,16 @@ def mouseMove(query):
 if __name__=='__main__':
     print('--- PROGRAM START ---')
     say("Launched successfully!")
+    indicatorWindow = subprocess.Popen(["python", "indicator.py", "Launching..."])
     while(1):
         print("Listening...")
+        indicatorWindow.kill()
+        indicatorWindow = subprocess.Popen(["python", "indicator.py", "Listening..."])
+        # pag.hotkey("alt", "tab")
         command = listenToCommand()
+        indicatorWindow.kill()
+        indicatorWindow = subprocess.Popen(["python", "indicator.py", "Processing your voice input..."])
+        # pag.hotkey("alt", "tab")
         # command = input()
         queries = []
         if "then orange" or "then Orange" in command.lower():
@@ -198,12 +206,17 @@ if __name__=='__main__':
             elif query.lower().startswith("bye bye orange") or query.lower().startswith("bye bye Orange") or query.lower().startswith("bye-bye orange") or query.lower().startswith("bye-bye Orange"):
                 print("--- PROGRAM END ---")
                 say("shutting down! See you again!")
+                indicatorWindow.kill()
                 flag = 1  # close program
+                sys.exit()
                 break
             elif query.lower().startswith("enter conversation mode"):
                 print("---CONVERSATION MODE START---")
                 # search on web/ integrate with chatGPT
                 while(True):
+                    indicatorWindow.kill()
+                    indicatorWindow = subprocess.Popen(["python", "indicator.py", "Conversation mode..."])
+                    pag.hotkey("alt", "tab")
                     command = listenToCommand()
                     # command = input()
                     # print("convo loop start")
@@ -212,6 +225,9 @@ if __name__=='__main__':
                     else:
                         response = model.generate_content(command)
                         print(response.text)
+                        indicatorWindow.kill()
+                        indicatorWindow = subprocess.Popen(["python", "indicator.py", response.text])
+                        pag.hotkey("alt", "tab")
                         say(response.text)
 
                     # with keyboard.Listener(on_press=on_press) as listener:
