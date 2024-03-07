@@ -15,7 +15,7 @@ from threading import Thread
 screenWidth, screenHeight = pag.size()
 
 # testKey from my account...
-mykey = "AIzaSyB_cxC5kWIrhOohiqBCtE-jJiwZB0s8EhU"
+mykey = "---oops"
 genai.configure(api_key=mykey)
 model = genai.GenerativeModel('gemini-pro')
 speaker = win32com.client.Dispatch("SAPI.SpVoice")
