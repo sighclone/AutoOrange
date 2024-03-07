@@ -9,32 +9,37 @@ import pathlib
 import textwrap
 import google.generativeai as genai
 from pynput import keyboard
+import threading
 from threading import Thread
-
+import tkinter as tk
 
 screenWidth, screenHeight = pag.size()
 
 # testKey from my account...
-mykey = "---oops"
+mykey = "AIzaSyDVNXysC7JXYND_1aey22ASdIA4-lKF0xg" # "---oops"
 genai.configure(api_key=mykey)
 model = genai.GenerativeModel('gemini-pro')
 speaker = win32com.client.Dispatch("SAPI.SpVoice")
 
+lock = threading.Lock()
+
 def say(text):
     speaker.Speak(text)
 
-didntUnderstandMsg = "I don't understand. Could you please repeat?"
+didntUnderstandMsg = "bad audio"
 def listenToCommand():
     r = sr.Recognizer()
     with sr.Microphone() as source:
         r.pause_threshold = 0.9
+        # say("processing audio")
         audio = r.listen(source)
         try:
-            query = r.recognize_google(audio, language="en-in")
+            query = r.recognize_google(audio_data=audio, language="en-in")
             print(f"You said: {query}")
             return query
         except Exception as e:
-            return didntUnderstandMsg
+            say(didntUnderstandMsg)
+            return "No speech detected/check internet"
 
 # defining a site list for non-.com ending sites
 siteList = {
@@ -56,6 +61,7 @@ def openSite(query):
 appList = {
     # Microsoft Word
     "word":"C:\Program Files\Microsoft Office\\root\Office16\WINWORD.EXE",
+    "wolrd":"C:\Program Files\Microsoft Office\\root\Office16\WINWORD.EXE",
 
     # Microsoft PowerPoint
     "power point":"C:\Program Files\Microsoft Office\\root\Office16\POWERPNT.EXE",
@@ -90,6 +96,8 @@ def openApp(query):
 
 def typeThis(query):
     command = query.removeprefix("type ")
+    if command.startswith("fullstop"):
+        pag.press(".")
     if command.endswith("in upper case") or command.endswith("in uppercase"):
         command = command.removesuffix(" in upper case")
         command = command.removesuffix(" in uppercase")
@@ -98,7 +106,18 @@ def typeThis(query):
     pag.write(command+" ")
 
 def pressThis(query):
+    query = query.replace("control", "ctrl")
+    query = query.replace("delete", "del")
+    query = query.replace("windows", "win")
     command = query.removeprefix("press ")
+    if(command.startswith("hotkey") or command.startswith("hot key")):
+        command = query.lower().removeprefix("press hot     key ");
+        command = command.removeprefix("press hot key ");
+        keys = command.split(" ")
+        if len(keys)==3:
+            pag.hotkey(keys[0], keys[1], keys[2])
+        else:
+            pag.hotkey(keys[0], keys[1])
     say("".join(["pressed ", command]))
     pag.press(command)
 
@@ -107,6 +126,7 @@ def scrollDown(clickCount):
     say("scrolling down.")
     pag.scroll(clickCount) # scroll down for specified number of clicks
 
+# TODO: Implement emergency killswitch
 stop_program=True
 def on_press(key):
     global stop_program
@@ -125,7 +145,7 @@ def mouseMove(query):
     if(len(command)>0):
         direction = command[0].strip()
         # say("".join(["moving ", direction]))
-    points = 225
+    points = 100
     if(len(command)>1):
         speed = command[1].strip()
         # say("".join([" in rate ", speed]))
@@ -152,18 +172,26 @@ def mouseMove(query):
         # say("".join(["mouse is currently at", str(x), " and ", str(y)]))
         pag.moveTo(x, y + points)
 
-if __name__=='__main__':
+# if __name__=='__main__':
+inConvoMode = False
+
+def main():
+    global inConvoMode
     print('--- PROGRAM START ---')
+    # lock.acquire(False)
+    indicatorInstance = subprocess.Popen(["python", "indicator.py", "AutoOrange\nRUNNING"])
     say("Launched successfully!")
-    indicatorWindow = subprocess.Popen(["python", "indicator.py", "Launching..."])
+    # lock.release()
+    # indicatorWindow = subprocess.Popen(["python", "indicator.py", "Launching..."])
     while(1):
         print("Listening...")
-        indicatorWindow.kill()
-        indicatorWindow = subprocess.Popen(["python", "indicator.py", "Listening..."])
+        say(". speak ")
+        # indicatorWindow.kill()
+        # indicatorWindow = subprocess.Popen(["python", "indicator.py", "Listening..."])
         # pag.hotkey("alt", "tab")
         command = listenToCommand()
-        indicatorWindow.kill()
-        indicatorWindow = subprocess.Popen(["python", "indicator.py", "Processing your voice input..."])
+        # indicatorWindow.kill()
+        # indicatorWindow = subprocess.Popen(["python", "indicator.py", "Processing your voice input..."])
         # pag.hotkey("alt", "tab")
         # command = input()
         queries = []
@@ -199,37 +227,45 @@ if __name__=='__main__':
                 pag.click()
             elif query.lower().startswith("right click"):
                 pag.rightClick()
+            elif query.lower().startswith("right click"):
+                pag.doubleClick();
             elif query.lower().startswith("hold"):
                 pag.mouseDown()
             elif query.lower().startswith("unhold"):
                 pag.mouseUp()
             elif query.lower().startswith("bye bye orange") or query.lower().startswith("bye bye Orange") or query.lower().startswith("bye-bye orange") or query.lower().startswith("bye-bye Orange"):
                 print("--- PROGRAM END ---")
+                indicatorInstance.kill()
+                indicatorInstance = subprocess.Popen(["python", "indicator.py", "Shutting down\nAutoOrange"])
                 say("shutting down! See you again!")
-                indicatorWindow.kill()
+                indicatorInstance.kill()
                 flag = 1  # close program
                 sys.exit()
                 break
-            elif query.lower().startswith("enter conversation mode"):
+            elif query.lower().startswith("enter conversation mode") or query.lower().startswith("inter conversation mode"):
                 print("---CONVERSATION MODE START---")
                 # search on web/ integrate with chatGPT
+                say("Conversation mode. Talk to an AI!")
                 while(True):
-                    indicatorWindow.kill()
-                    indicatorWindow = subprocess.Popen(["python", "indicator.py", "Conversation mode..."])
-                    pag.hotkey("alt", "tab")
+                    inConvoMode = True
+                    # indicatorWindow.kill()
+                    # indicatorWindow = subprocess.Popen(["python", "indicator.py", "Conversation mode..."])
+                    # pag.hotkey("alt", "tab")
+                    print("Listening...")
+                    say(". speak")
                     command = listenToCommand()
                     # command = input()
                     # print("convo loop start")
                     if command.startswith("exit conversation mode"):
+                        # inConvoMode = False
                         break
                     else:
                         response = model.generate_content(command)
                         print(response.text)
-                        indicatorWindow.kill()
-                        indicatorWindow = subprocess.Popen(["python", "indicator.py", response.text])
-                        pag.hotkey("alt", "tab")
+                        # indicatorWindow.kill()
+                        # indicatorWindow = subprocess.Popen(["python", "indicator.py", response.text])
+                        # pag.hotkey("alt", "tab")
                         say(response.text)
-
                     # with keyboard.Listener(on_press=on_press) as listener:
                     #     # try:
                     #     audio_thread = threading.Thread(target=say("this program sure is executing in all its glory but I wonder if it can be stopped at any time"))
@@ -243,12 +279,25 @@ if __name__=='__main__':
                     #     except SystemExit:
                     #         print("terminated by user successfully")
                 print("---CONVERSATION MODE END---")
-
-
+                say("Ending conversation mode")
 
             # time.sleep(3)
             # say(query)
         if flag==1:
             break
         # time.sleep(0.5) # some delay for the user to prepare next command
-        #
+
+#
+# if __name__ == '__main__':
+#     # Create threads
+#     thread1 = threading.Thread(target=create_window)
+#     thread2 = threading.Thread(target=main)
+#
+#     # Start threads
+#     thread1.start()
+#     thread2.start()
+#
+#     # Wait for threads to finish (optional)
+#     thread1.join()
+#     thread2.join()
+main()
