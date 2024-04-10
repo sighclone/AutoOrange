@@ -1,2 +1,11 @@
 # created by virtualenv automatically
-# :)
+# . # :)
+Lib/
+Scripts/
+dist/
+build/
+.idea/
+pyvenv.cfg
+main.spec
+./indicator.py
+./main.py
